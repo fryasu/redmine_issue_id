@@ -20,7 +20,7 @@ module IssueChangesetPatch
             return nil if id.blank?
             return nil unless id.include?('-')
             key, number = id.split('-')
-            issue = Issue.find_by_project_key_and_issue_number(key.upcase, number.to_i, :include => :project)
+            issue = Issue.find_by_project_key_and_issue_number(key.upcase, number.to_i)
             unless issue
                 moved_issue = MovedIssue.find_by_old_key_and_old_number(key.upcase, number.to_i)
                 issue = moved_issue.issue if moved_issue
@@ -39,7 +39,7 @@ module IssueChangesetPatch
             return if comments.blank?
             ref_keywords      = Setting.commit_ref_keywords.downcase.split(',').collect(&:strip)
             ref_keywords_any  = ref_keywords.delete('*')
-            fix_keywords      = Setting.commit_fix_keywords.downcase.split(',').collect(&:strip)
+            fix_keywords      = fix_keywords = Setting.commit_update_keywords_array.map {|r| r['keywords']}.flatten.compact
             kw_regexp         = (ref_keywords + fix_keywords).collect{ |kw| Regexp.escape(kw) }.join('|')
             referenced_issues = []
 

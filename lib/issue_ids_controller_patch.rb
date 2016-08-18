@@ -10,8 +10,7 @@ module IssueIdsControllerPatch
             prepend_before_filter :detect_moved_issues, :only => :show
 
             after_filter :fix_creation_notice, :only => :create
-
-            alias_method_chain :retrieve_previous_and_next_issue_ids, :full_ids
+            before_filter :reset_issue_id_in_copy, :only => [:new, :create]
         end
     end
 
@@ -40,6 +39,14 @@ module IssueIdsControllerPatch
             if @next_issue_id
                 next_issue = Issue.find_by_id(@next_issue_id)
                 @next_issue_id = next_issue.issue_id if next_issue
+            end
+        end
+
+        def reset_issue_id_in_copy
+            # issues_controller.build_new_issue_from_params() copies the issue_number.
+            if params[:copy_from]
+                @issue.issue_number = nil
+                @issue.project_key = nil
             end
         end
 

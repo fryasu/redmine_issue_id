@@ -31,9 +31,9 @@ module IssueApplicationHelperPatch
                 link = nil
                 if esc.nil?
                     if key.nil?
-                        issue = Issue.visible.find_by_id(number.to_i, :include => :status)
+                        issue = Issue.visible.find_by_id(number.to_i)
                     else
-                        issue = Issue.visible.find_by_project_key_and_issue_number(key.upcase, number.to_i, :include => :status)
+                        issue = Issue.visible.find_by_project_key_and_issue_number(key.upcase, number.to_i)
                         unless issue
                             moved_issue = MovedIssue.find_by_old_key_and_old_number(key.upcase, number.to_i)
                             issue = moved_issue.issue if moved_issue && moved_issue.issue.visible?

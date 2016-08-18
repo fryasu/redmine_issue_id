@@ -1,4 +1,4 @@
-<% settings = Setting.plugin_issue_id %>
+<% settings = Setting.plugin_redmine_issue_id %>
 <p>
   <%= form.text_field(:issue_key, :size => 10, :disabled => @project.issue_key.present? && !@project.issue_key_changed?) %>
   <% if @project.issue_key.blank? || @project.issue_key_changed? %>

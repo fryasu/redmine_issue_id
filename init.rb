@@ -1,6 +1,7 @@
 require 'redmine'
 
 require_dependency 'issue_id_hook'
+require_dependency 'issue_mailer_patch'
 
 Rails.logger.info 'Starting ISSUE-id Plugin for Redmine'
 
@@ -50,6 +51,9 @@ Rails.configuration.to_prepare do
     unless Changeset.included_modules.include?(IssueChangesetPatch)
         Changeset.send(:include, IssueChangesetPatch)
     end
+    unless Mailer.included_modules.include?(IssueMailerPatch)
+        Mailer.send(:include, IssueMailerPatch)
+    end
 
     Issue.event_options[:title] = Proc.new do |issue|
         "#{issue.tracker.name} ##{issue.to_param} (#{issue.status}): #{issue.subject}"
@@ -67,13 +71,13 @@ Rails.configuration.to_prepare do
     end
 end
 
-Redmine::Plugin.register :issue_id do
-    name 'ISSUE-id'
-    author 'Andriy Lesyuk'
-    author_url 'http://www.andriylesyuk.com/'
-    description 'Adds support for issue ids in format: CODE-number.'
-    url 'http://projects.andriylesyuk.com/projects/issue-id'
-    version '0.0.1b'
+Redmine::Plugin.register :redmine_issue_id do
+    name 'Redmine ISSUE-id'
+    author 'fryasu'
+    author_url 'https://github.com/fryasu/'
+    description 'Adds support for issue ids in format: CODE-number. This is the fork of original Andriy Lesyuk\'s'
+    url 'https://github.com/fryasu/redmine_issue_id'
+    version '0.1.0'
 
     settings :default => {
         :issue_key_sharing => false

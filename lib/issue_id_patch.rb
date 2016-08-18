@@ -4,26 +4,25 @@ module IssueIdPatch
 
     def self.included(base)
         base.extend(ClassMethods)
+        base.extend(FinderMethods)
         base.send(:include, InstanceMethods)
         base.class_eval do
             unloadable
 
             validates_uniqueness_of :issue_number, :scope => :project_key, :allow_blank => true, :if => Proc.new { |issue| issue.issue_number_changed? }
             validates_length_of :project_key, :in => 1..Project::ISSUE_KEY_MAX_LENGTH, :allow_blank => true
-			if Redmine::VERSION::MAJOR >= 3
-            	validates_format_of :project_key, :with => %r{^[A-Z][A-Z0-9]*$}, :allow_blank => true, :multiline => true
-			else
-				validates_format_of :project_key, :with => %r{^[A-Z][A-Z0-9]*$}, :allow_blank => true
-			end
+            validates_format_of :project_key, :with => %r{^[A-Z][A-Z0-9]*$}, :allow_blank => true, :multiline => true
 
-            after_save :create_moved_issue, :generate_issue_id
-
+            #after_save :create_moved_issue, :generate_issue_id
+            before_save :create_moved_issue, :generate_issue_id
+ 
             alias_method_chain :to_s, :issue_id
+
+            before_validation :adjust_parent_id
         end
     end
 
-    module ClassMethods
-
+    module FinderMethods
         def find(*args)
             if args.first && args.first.is_a?(String) && args.first.include?('-')
                 key, number = args.shift.split('-')
@@ -43,6 +42,28 @@ module IssueIdPatch
             end
         end
 
+        def where(*args)
+            hash = nil
+            if args && args.first && args.first.is_a?(Hash)
+                hash = args.first
+            end
+            if hash && hash[:id] && hash[:id].is_a?(String) && hash[:id].include?('-')
+                key, number = hash[:id].split('-')
+                hash[:project_key]  = key.upcase
+                hash[:issue_number] = number.to_i
+                hash.delete(:id)
+                # XXX: oln_number is not supported... :(
+            end
+            super
+        end
+    end
+
+    module ClassMethods
+        def joins(*args)
+            r = super
+            r.extend FinderMethods
+            r   
+        end
     end
 
     module InstanceMethods
@@ -52,6 +73,8 @@ module IssueIdPatch
         end
 
         def issue_id
+            adjust_parent_status_id
+
             if support_issue_id?
                 @issue_id ||= IssueID.new(id, project_key, issue_number)
             else
@@ -92,14 +115,27 @@ module IssueIdPatch
             if !support_issue_id? && project.issue_key.present?
                 reserved_number = ProjectIssueKey.reserve_issue_number!(project.issue_key)
                 if reserved_number
-					if Redmine::VERSION::MAJOR >= 3
-						Issue.where(:id => id).update_all({ :project_key => project.issue_key,
-						                           :issue_number => reserved_number } )
-					else
-						Issue.update_all({ :project_key => project.issue_key,
-                                       :issue_number => reserved_number }, :id => id)
-					end
-                    reload
+                    self.project_key = project.issue_key
+                    self.issue_number = reserved_number
+                end
+            end
+        end
+
+        def adjust_parent_status_id
+          return if @__init_parent_status_id
+
+          @__init_parent_status_id = 1
+          if support_issue_id? && parent_id
+            self.parent_issue_id = Issue.find(parent_id).issue_id
+          end
+        end
+
+        def adjust_parent_id
+            if parent_issue_id then
+                begin
+                    self.parent_issue_id = Issue.find(parent_issue_id).id
+                rescue ActiveRecord::RecordNotFound => e
+                    Rails.logger.error "#{e.class} at issue_id plugin: #{e.message}: #{parent_issue_id}"
                 end
             end
         end

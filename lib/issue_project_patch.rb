@@ -65,7 +65,7 @@ module IssueProjectPatch
             if issue_key.present? && issue_key_changed?
                 project_key = ProjectIssueKey.find_by_project_key(issue_key)
                 if project_key && project_key.projects.any?
-                    settings = Setting.plugin_issue_id
+                    settings = Setting.plugin_redmine_issue_id
                     if settings.is_a?(Hash) && settings[:issue_key_sharing]
                         if (!parent || issue_key != parent.issue_key) && (children & project_key.projects).size == 0
                             errors.add(:issue_key, :taken)
@@ -79,26 +79,16 @@ module IssueProjectPatch
 
         def migrate_issue_ids
             if issue_key.present? && !skip_issue_migration?
-
-				if Redmine::VERSION::MAJOR >= 3
-					project_key = ProjectIssueKey.where(project_key: issue_key).first_or_create
-					Issue.where(:project_id => project_key.projects.collect(&:id),
-	                                       :project_key => nil,
-	                                       :issue_number => nil).order(:id).each do |issue|
-    	                issue_number = project_key.reserve_issue_number!
-    	                issue.update_attributes(:project_key => issue_key, :issue_number => issue_number)
-	                end
-				else
-			        project_key = ProjectIssueKey.find_or_create_by_project_key(issue_key)
-			        Issue.all(:conditions => { :project_id => project_key.projects.collect(&:id),
-			                                   :project_key => nil,
-			                                   :issue_number => nil },
-			                  :order => :id).each do |issue|
-
-    	                issue_number = project_key.reserve_issue_number!
-    	                issue.update_attributes(:project_key => issue_key, :issue_number => issue_number)
-	                end
-				end
+		project_key = ProjectIssueKey.where(project_key: issue_key).first_or_create
+		Issue.where(:project_id => project_key.projects.collect(&:id),
+                            :project_key => nil,
+                            :issue_number => nil).order(:id).each do |issue|
+                    # When issue has parent_id, issue_number of parent_id is already set...
+		    return if Issue.find(issue).issue_number.present?
+                         
+    	            issue_number = project_key.reserve_issue_number!
+                    issue.update_attributes(:project_key => issue_key, :issue_number => issue_number)
+                end
             end
         end
 
