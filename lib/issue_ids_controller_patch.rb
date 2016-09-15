@@ -11,6 +11,8 @@ module IssueIdsControllerPatch
 
             after_filter :fix_creation_notice, :only => :create
             before_filter :reset_issue_id_in_copy, :only => [:new, :create]
+
+            alias_method_chain :retrieve_previous_and_next_issue_ids, :full_ids
         end
     end
 
