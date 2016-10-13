@@ -15,15 +15,30 @@ STEP2. Please modify "config/routes" of the original redmine.
 
        $ vi redmine/config/routes
          --------------------------
-       	 match '/issues/:id/quoted', :to => 'journals#new', :id => /\d+/, :via => :post, :as => 'quoted_issue'
+         match '/issues/:id/quoted', :to => 'journals#new', :id => /\d+/, :via => :post, :as => 'quoted_issue'
          --------------------------
              |
              V
          --------------------------
-	 #NOTE: commentd out for redmine issue-id plugin.
-	 #match '/issues/:id/quoted', :to => 'journals#new', :id => /\d+/, :via => :post, :as => 'quoted_issue'
+         #NOTE: commentd out for redmine issue-id plugin.
+         #match '/issues/:id/quoted', :to => 'journals#new', :id => /\d+/, :via => :post, :as => 'quoted_issue'
          --------------------------
 
-STEP3. Migrates the DB
+STEP3. Corrects the issue edit page title of the original redmine.
+
+       $ vi app/views/issues/edit.html.erb
+         --------------------------
+         <h2><%= "#{@issue.tracker_was} ##{@issue.id}" %></h2>
+         --------------------------
+             |
+             V
+         --------------------------
+         <h2><%= issue_heading(@issue) %></h2>
+         --------------------------
+
+       NOTE: this may be redmine bug, because another issues/edit.html.erb
+             is correct.
+
+STEP4. Migrates the DB
 
        $ RAILS_ENV=production NAME=redmine_issue_id rake redmine:plugins:migrate
