@@ -52,6 +52,14 @@ module IssueApplicationHelperPatch
             parse_redmine_links_without_issue_id(text, project, obj, attr, only_path, options)
         end
 
+        # override path helper with 'object.id' (legacy ID) instead of default 'object.to_param'.
+        def new_watchers_path(objects)
+            object_ids = Array.wrap(objects[:object_id])
+            return '' unless object_ids.any?
+            objects[:object_id] = (object_ids.size == 1 ? object_ids.first.id : object_ids.map(&:id).sort)
+            super(objects)
+        end
+
     end
 
 end
