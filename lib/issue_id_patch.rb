@@ -126,7 +126,11 @@ module IssueIdPatch
 
           @__init_parent_status_id = 1
           if support_issue_id? && parent_id
-            self.parent_issue_id = Issue.find(parent_id).issue_id
+            begin
+              self.parent_issue_id = Issue.find(parent_id).issue_id
+            rescue ActiveRecord::RecordNotFound => e
+              Rails.logger.error "#{e.class} at issue_id plugin: #{e.message}: #{parent_issue_id}"
+            end
           end
         end
 
